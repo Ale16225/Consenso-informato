@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Modulo Consenso Informato</title>
+  <!-- Libreria per la generazione del PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --primary: #1a56db;
+      --primary-hover: #1e429f;
+      --bg: #f3f4f6;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --danger: #dc2626;
+      --success: #059669;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 16px;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+      background: var(--card);
+      padding: 24px;
+      border-radius: 14px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    header {
+      border-bottom: 2px solid var(--bg);
+      padding-bottom: 14px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.4rem;
+      color: var(--primary);
+    }
+
+    .date-badge {
+      background: var(--bg);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .section-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin: 20px 0 10px 0;
+      color: var(--text);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 600px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .container {
+        padding: 16px;
+      }
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+    }
+
+    label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    input[type="tel"],
+    input[type="email"],
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      background: #fff;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.15);
+    }
+
+    .consent-box {
+      background: #f9fafb;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      max-height: 210px;
+      overflow-y: auto;
+      font-size: 0.92rem;
+      color: #374151;
+    }
+
+    .checkbox-group {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: #f9fafb;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      cursor: pointer;
+    }
+
+    .checkbox-item input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      margin-top: 2px;
+      accent-color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .signature-wrapper {
+      border: 2px dashed #9ca3af;
+      border-radius: 10px;
+      background: #ffffff;
+      position: relative;
+      touch-action: none; /* Impedisce lo scroll della pagina mentre si firma */
+    }
+
+    canvas#signaturePad {
+      width: 100%;
+      height: 200px;
+      display: block;
+      border-radius: 10px;
+      cursor: crosshair;
+    }
+
+    .signature-hint {
+      position: absolute;
+      bottom: 8px;
+      right: 12px;
+      font-size: 0.8rem;
+      color: #9ca3af;
+      pointer-events: none;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+      justify-content: space-between;
+    }
+
+    button {
+      padding: 14px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-clear {
+      background: #fee2e2;
+      color: var(--danger);
+    }
+
+    .btn-clear:hover {
+      background: #fecaca;
+    }
+
+    .btn-reset {
+      background: #e5e7eb;
+      color: var(--text);
+    }
+
+    .btn-save {
+      background: var(--primary);
+      color: #fff;
+      flex-grow: 1;
+    }
+
+    .btn-save:hover {
+      background: var(--primary-hover);
+    }
+
+    .status-msg {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: 600;
+      display: none;
+      text-align: center;
+    }
+
+    .status-error {
+      background: #fee2e2;
+      color: var(--danger);
+      display: block;
+    }
+
+    .status-success {
+      background: #d1fae5;
+      color: var(--success);
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div>
+      <h1>Modulo di Consenso Informato</h1>
+      <small style="color: var(--muted);">Compilare i dati e apporre la firma nello spazio dedicato</small>
+    </div>
+    <div class="date-badge" id="todayDate"></div>
+  </header>
+
+  <div class="section-title">1. Dati del Cliente</div>
+  <div class="grid">
+    <div class="field">
+      <label for="nome">Nome *</label>
+      <input type="text" id="nome" placeholder="Es. Mario" required>
+    </div>
+    <div class="field">
+      <label for="cognome">Cognome *</label>
+      <input type="text" id="cognome" placeholder="Es. Rossi" required>
+    </div>
+    <div class="field">
+      <label for="codiceFiscale">Codice Fiscale / Documento</label>
+      <input type="text" id="codiceFiscale" placeholder="Opzionale" style="text-transform: uppercase;">
+    </div>
+    <div class="field">
+      <label for="telefono">Telefono o Email</label>
+      <input type="text" id="telefono" placeholder="Es. 333 1234567">
+    </div>
+  </div>
+
+  <div class="section-title">2. Informativa e Consenso</div>
+  <div class="consent-box" id="consentText">
+    <p><strong>INFORMATIVA SUL TRATTAMENTO / INTERVENTO E PRIVACY</strong></p>
+    <p>Il/La sottoscritto/a dichiara di essere stato/a informato/a in modo chiaro, completo e comprensibile in merito alle modalità, finalità, benefici e possibili rischi connessi alla prestazione richiesta, avendo avuto la possibilità di porre domande e ricevere risposte esaurienti.</p>
+    <p>Dichiara inoltre di aver preso visione dell'informativa sul trattamento dei dati personali ai sensi del Regolamento (UE) 2016/679 (GDPR) e autorizza il trattamento dei propri dati esclusivamente per le finalità connesse all'erogazione del servizio e agli obblighi di legge.</p>
+  </div>
+
+  <div class="checkbox-group">
+    <label class="checkbox-item">
+      <input type="checkbox" id="checkConsenso">
+      <span><strong>Dichiaro di aver letto e compreso l'informativa</strong> e presto il mio consenso all'esecuzione del servizio/trattamento. *</span>
+    </label>
+    <label class="checkbox-item">
+      <input type="checkbox" id="checkPrivacy">
+      <span><strong>Acconsento al trattamento dei dati personali</strong> ai sensi della normativa vigente (GDPR). *</span>
+    </label>
+  </div>
+
+  <div class="section-title">3. Firma del Cliente *</div>
+  <div class="signature-wrapper">
+    <canvas id="signaturePad"></canvas>
+    <div class="signature-hint">Firma qui con il dito o pennino</div>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn-clear" onclick="clearSignature()">Cancella firma</button>
+    <button type="button" class="btn-reset" onclick="resetForm()">Nuovo cliente</button>
+    <button type="button" class="btn-save" onclick="generatePDF()">Conferma e Salva PDF</button>
+  </div>
+
+  <div id="statusMsg" class="status-msg"></div>
+</div>
+
+<script>
+  // Imposta la data odierna
+  const now = new Date();
+  const formattedDate = now.toLocaleDateString('it-IT');
+  document.getElementById('todayDate').textContent = 'Data: ' + formattedDate;
+
+  // Configurazione Canvas Firma
+  const canvas = document.getElementById('signaturePad');
+  const ctx = canvas.getContext('2d');
+  let isDrawing = false;
+  let hasSigned = false;
+
+  function resizeCanvas() {
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+    ctx.scale(ratio, ratio);
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#111827';
+  }
+
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    };
+  }
+
+  function startDraw(e) {
+    e.preventDefault();
+    isDrawing = true;
+    hasSigned = true;
+    const pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+  }
+
+  function draw(e) {
+    if (!isDrawing) return;
+    e.preventDefault();
+    const pos = getPos(e);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+  }
+
+  function endDraw(e) {
+    if (!isDrawing) return;
+    e.preventDefault();
+    isDrawing = false;
+  }
+
+  // Eventi Touch (Tablet / Smartphone) e Mouse
+  canvas.addEventListener('touchstart', startDraw, { passive: false });
+  canvas.addEventListener('touchmove', draw, { passive: false });
+  canvas.addEventListener('touchend', endDraw, { passive: false });
+
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', endDraw);
+  canvas.addEventListener('mouseleave', endDraw);
+
+  function clearSignature() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    hasSigned = false;
+  }
+
+  function showStatus(text, isError) {
+    const el = document.getElementById('statusMsg');
+    el.textContent = text;
+    el.className = 'status-msg ' + (isError ? 'status-error' : 'status-success');
+  }
+
+  function resetForm() {
+    document.getElementById('nome').value = '';
+    document.getElementById('cognome').value = '';
+    document.getElementById('codiceFiscale').value = '';
+    document.getElementById('telefono').value = '';
+    document.getElementById('checkConsenso').checked = false;
+    document.getElementById('checkPrivacy').checked = false;
+    clearSignature();
+    document.getElementById('statusMsg').style.display = 'none';
+  }
+
+  function generatePDF() {
+    const nome = document.getElementById('nome').value.trim();
+    const cognome = document.getElementById('cognome').value.trim();
+    const cf = document.getElementById('codiceFiscale').value.trim().toUpperCase();
+    const tel = document.getElementById('telefono').value.trim();
+    const checkConsenso = document.getElementById('checkConsenso').checked;
+    const checkPrivacy = document.getElementById('checkPrivacy').checked;
+
+    if (!nome || !cognome) {
+      showStatus('Inserisci Nome e Cognome del cliente.', true);
+      return;
+    }
+    if (!checkConsenso || !checkPrivacy) {
+      showStatus('È necessario selezionare entrambe le caselle di consenso.', true);
+      return;
+    }
+    if (!hasSigned) {
+      showStatus('Il cliente deve apporre la firma nel riquadro prima di salvare.', true);
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const timestamp = new Date().toLocaleString('it-IT');
+
+    // Intestazione PDF
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('MODULO DI CONSENSO INFORMATO', 20, 22);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Data e ora di sottoscrizione: ' + timestamp, 20, 30);
+
+    // Dati cliente
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Dati del Cliente', 20, 44);
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Nome e Cognome: ${nome} ${cognome}`, 20, 52);
+    if (cf) doc.text(`Codice Fiscale / Documento: ${cf}`, 20, 59);
+    if (tel) doc.text(`Contatto: ${tel}`, 20, cf ? 66 : 59);
+
+    // Testo del consenso
+    let yPos = 78;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Dichiarazioni sottoscritte', 20, yPos);
+
+    yPos += 8;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const testoPulito = document.getElementById('consentText').innerText;
+    const righe = doc.splitTextToSize(testoPulito, 170);
+    doc.text(righe, 20, yPos);
+
+    yPos += righe.length * 5 + 8;
+    doc.setFont('helvetica', 'bold');
+    doc.text('[X] Consenso al servizio/trattamento confermato', 20, yPos);
+    yPos += 6;
+    doc.text('[X] Consenso al trattamento dei dati personali (GDPR) confermato', 20, yPos);
+
+    // Inserimento immagine firma
+    yPos += 14;
+    doc.text('Firma del Cliente:', 20, yPos);
+    const signatureData = canvas.toDataURL('image/png');
+    doc.addImage(signatureData, 'PNG', 20, yPos + 4, 80, 35);
+
+    doc.line(20, yPos + 42, 105, yPos + 42);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${nome} ${cognome} - Firmato digitalmente su dispositivo`, 20, yPos + 47);
+
+    // Salvataggio file
+    const fileName = `Consenso_${cognome}_${nome}_${now.toISOString().slice(0,10)}.pdf`.replace(/\s+/g, '_');
+    doc.save(fileName);
+
+    showStatus('PDF generato e salvato nella cartella Download!', false);
+  }
+</script>
+
+</body>
+</html>
