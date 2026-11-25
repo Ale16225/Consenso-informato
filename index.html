@@ -161,7 +161,7 @@
       border-radius: 10px;
       background: #ffffff;
       position: relative;
-      touch-action: none; /* Impedisce lo scroll della pagina mentre si firma */
+      touch-action: none;
     }
 
     canvas#signaturePad {
@@ -292,6 +292,10 @@
       <input type="checkbox" id="checkPrivacy">
       <span><strong>Acconsento al trattamento dei dati personali</strong> ai sensi della normativa vigente (GDPR). *</span>
     </label>
+    <label class="checkbox-item">
+      <input type="checkbox" id="checkSocial">
+      <span><strong>Autorizzo l'acquisizione di foto/video durante la seduta</strong> e la loro pubblicazione sui canali social e promozionali dell'attività (facoltativo).</span>
+    </label>
   </div>
 
   <div class="section-title">3. Firma del Cliente *</div>
@@ -329,160 +333,4 @@
     ctx.scale(ratio, ratio);
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#111827';
-  }
-
-  window.addEventListener('resize', resizeCanvas);
-  resizeCanvas();
-
-  function getPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
-    };
-  }
-
-  function startDraw(e) {
-    e.preventDefault();
-    isDrawing = true;
-    hasSigned = true;
-    const pos = getPos(e);
-    ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
-  }
-
-  function draw(e) {
-    if (!isDrawing) return;
-    e.preventDefault();
-    const pos = getPos(e);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-  }
-
-  function endDraw(e) {
-    if (!isDrawing) return;
-    e.preventDefault();
-    isDrawing = false;
-  }
-
-  // Eventi Touch (Tablet / Smartphone) e Mouse
-  canvas.addEventListener('touchstart', startDraw, { passive: false });
-  canvas.addEventListener('touchmove', draw, { passive: false });
-  canvas.addEventListener('touchend', endDraw, { passive: false });
-
-  canvas.addEventListener('mousedown', startDraw);
-  canvas.addEventListener('mousemove', draw);
-  canvas.addEventListener('mouseup', endDraw);
-  canvas.addEventListener('mouseleave', endDraw);
-
-  function clearSignature() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    hasSigned = false;
-  }
-
-  function showStatus(text, isError) {
-    const el = document.getElementById('statusMsg');
-    el.textContent = text;
-    el.className = 'status-msg ' + (isError ? 'status-error' : 'status-success');
-  }
-
-  function resetForm() {
-    document.getElementById('nome').value = '';
-    document.getElementById('cognome').value = '';
-    document.getElementById('codiceFiscale').value = '';
-    document.getElementById('telefono').value = '';
-    document.getElementById('checkConsenso').checked = false;
-    document.getElementById('checkPrivacy').checked = false;
-    clearSignature();
-    document.getElementById('statusMsg').style.display = 'none';
-  }
-
-  function generatePDF() {
-    const nome = document.getElementById('nome').value.trim();
-    const cognome = document.getElementById('cognome').value.trim();
-    const cf = document.getElementById('codiceFiscale').value.trim().toUpperCase();
-    const tel = document.getElementById('telefono').value.trim();
-    const checkConsenso = document.getElementById('checkConsenso').checked;
-    const checkPrivacy = document.getElementById('checkPrivacy').checked;
-
-    if (!nome || !cognome) {
-      showStatus('Inserisci Nome e Cognome del cliente.', true);
-      return;
-    }
-    if (!checkConsenso || !checkPrivacy) {
-      showStatus('È necessario selezionare entrambe le caselle di consenso.', true);
-      return;
-    }
-    if (!hasSigned) {
-      showStatus('Il cliente deve apporre la firma nel riquadro prima di salvare.', true);
-      return;
-    }
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const timestamp = new Date().toLocaleString('it-IT');
-
-    // Intestazione PDF
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('MODULO DI CONSENSO INFORMATO', 20, 22);
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Data e ora di sottoscrizione: ' + timestamp, 20, 30);
-
-    // Dati cliente
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Dati del Cliente', 20, 44);
-
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Nome e Cognome: ${nome} ${cognome}`, 20, 52);
-    if (cf) doc.text(`Codice Fiscale / Documento: ${cf}`, 20, 59);
-    if (tel) doc.text(`Contatto: ${tel}`, 20, cf ? 66 : 59);
-
-    // Testo del consenso
-    let yPos = 78;
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Dichiarazioni sottoscritte', 20, yPos);
-
-    yPos += 8;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    const testoPulito = document.getElementById('consentText').innerText;
-    const righe = doc.splitTextToSize(testoPulito, 170);
-    doc.text(righe, 20, yPos);
-
-    yPos += righe.length * 5 + 8;
-    doc.setFont('helvetica', 'bold');
-    doc.text('[X] Consenso al servizio/trattamento confermato', 20, yPos);
-    yPos += 6;
-    doc.text('[X] Consenso al trattamento dei dati personali (GDPR) confermato', 20, yPos);
-
-    // Inserimento immagine firma
-    yPos += 14;
-    doc.text('Firma del Cliente:', 20, yPos);
-    const signatureData = canvas.toDataURL('image/png');
-    doc.addImage(signatureData, 'PNG', 20, yPos + 4, 80, 35);
-
-    doc.line(20, yPos + 42, 105, yPos + 42);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`${nome} ${cognome} - Firmato digitalmente su dispositivo`, 20, yPos + 47);
-
-    // Salvataggio file
-    const fileName = `Consenso_${cognome}_${nome}_${now.toISOString().slice(0,10)}.pdf`.replace(/\s+/g, '_');
-    doc.save(fileName);
-
-    showStatus('PDF generato e salvato nella cartella Download!', false);
-  }
-</script>
-
-</body>
-</html>
+    
